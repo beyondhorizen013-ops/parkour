@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cheese Studios - Parkour Runner</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
+    <style>
+        body { margin: 0; background: #222; display: flex; flex-direction: column; align-items: center; color: white; font-family: sans-serif; }
+        canvas { border: 4px solid #fff; margin-top: 20px; }
+        .credits { margin-top: 20px; text-align: center; line-height: 1.6; }
+    </style>
+</head>
+<body>
+
+    <div id="game-container"></div>
+
+    <div class="credits">
+        <hr>
+        <h2>OWNED BY AARUSH KUMAR GUBYAD</h2>
+        <h3>LEAD DESIGNER: ABHYUDAY SHUKLA</h3>
+        <p>A PRODUCT MADE BY <strong>CHEESE STUDIOS</strong></p>
+        <p><em>AN AARUSH KUMAR GUBYAD GAME</em></p>
+    </div>
+
+<script>
+const config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 400,
+    parent: 'game-container',
+    physics: {
+        default: 'arcade',
+        arcade: { gravity: { y: 1000 }, debug: false }
+    },
+    scene: { preload: preload, create: create, update: update }
+};
+
+let player;
+let platforms;
+let cursors;
+const game = new Phaser.Game(config);
+
+function preload() {
+    // Using simple shapes for a clean "Prototyping" look
+}
+
+function create() {
+    // Create Background
+    this.add.rectangle(400, 200, 800, 400, 0x3498db);
+
+    // Create Platforms (The Parkour Course)
+    platforms = this.physics.add.staticGroup();
+    
+    // Floor
+    platforms.create(400, 380, null).运作 = false; // logic placeholder
+    this.add.rectangle(400, 380, 800, 40, 0x2ecc71); 
+    platforms.add(this.add.zone(400, 380, 800, 40));
+
+    // Parkour Ledges
+    const levels = [
+        {x: 200, y: 300, w: 100},
+        {x: 400, y: 220, w: 120},
+        {x: 600, y: 150, w: 100},
+        {x: 750, y: 100, w: 50}
+    ];
+
+    levels.forEach(lvl => {
+        this.add.rectangle(lvl.x, lvl.y, lvl.w, 20, 0xe67e22);
+        let p = platforms.create(lvl.x, lvl.y, null);
+        p.setSize(lvl.w, 20);
+    });
+
+    // Create Player (The "Runner")
+    const playerGraphic = this.add.rectangle(100, 300, 30, 30, 0xf1c40f);
+    player = this.physics.add.existing(playerGraphic);
+    player.body.setCollideWorldBounds(true);
+
+    // Collisions
+    this.physics.add.collider(player, platforms);
+
+    // Controls
+    cursors = this.input.keyboard.createCursorKeys();
+
+    // UI
+    this.add.text(10, 10, 'CHEESE STUDIOS PARKOUR', { font: '20px Arial', fill: '#fff' });
+}
+
+function update() {
+    // Left/Right Movement
+    if (cursors.left.isDown) {
+        player.body.setVelocityX(-200);
+    } else if (cursors.right.isDown) {
+        player.body.setVelocityX(200);
+    } else {
+        player.body.setVelocityX(0);
+    }
+
+    // Jumping
+    if (cursors.up.isDown && player.body.touching.down) {
+        player.body.setVelocityY(-500);
+    }
+}
+</script>
+</body>
+</html>
