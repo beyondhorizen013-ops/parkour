@@ -3,102 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cheese Studios - Parkour Runner</title>
+    <title>Cheese Studios | Neon Parkour</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
     <style>
-        body { margin: 0; background: #222; display: flex; flex-direction: column; align-items: center; color: white; font-family: sans-serif; }
-        canvas { border: 4px solid #fff; margin-top: 20px; }
-        .credits { margin-top: 20px; text-align: center; line-height: 1.6; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Courier New', Courier, monospace; }
+        #game-ui { position: absolute; top: 10px; left: 10px; color: #0ff; z-index: 10; pointer-events: none; }
+        .menu-btn { 
+            position: absolute; bottom: 20px; right: 20px; 
+            padding: 10px 20px; background: #ff00ff; color: white; 
+            border: none; cursor: pointer; font-weight: bold; border-radius: 5px;
+            box-shadow: 0 0 15px #ff00ff; z-index: 20;
+        }
+        #credits-modal {
+            display: none; position: fixed; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); background: rgba(0,0,0,0.9);
+            color: #0ff; padding: 40px; border: 2px solid #ff00ff;
+            text-align: center; z-index: 100; box-shadow: 0 0 30px #ff00ff;
+        }
     </style>
 </head>
 <body>
 
-    <div id="game-container"></div>
+    <div id="game-ui">
+        <h2 id="level-display">LEVEL: 1</h2>
+        <p>GOAL: Reach the White Portal</p>
+    </div>
 
-    <div class="credits">
+    <button class="menu-btn" onclick="toggleCredits()">VIEW CREDITS</button>
+
+    <div id="credits-modal" onclick="toggleCredits()">
+        <h1 style="color: #ff00ff;">CREDITS</h1>
         <hr>
         <h2>OWNED BY AARUSH KUMAR GUBYAD</h2>
         <h3>LEAD DESIGNER: ABHYUDAY SHUKLA</h3>
         <p>A PRODUCT MADE BY <strong>CHEESE STUDIOS</strong></p>
-        <p><em>AN AARUSH KUMAR GUBYAD GAME</em></p>
+        <p style="font-size: 0.8em;">AN AARUSH KUMAR GUBYAD GAME</p>
+        <br>
+        <p>(Click anywhere to close)</p>
     </div>
 
 <script>
+function toggleCredits() {
+    const modal = document.getElementById('credits-modal');
+    modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
+}
+
 const config = {
     type: Phaser.AUTO,
-    width: 800,
-    height: 400,
-    parent: 'game-container',
+    width: window.innerWidth,
+    height: window.innerHeight,
     physics: {
         default: 'arcade',
-        arcade: { gravity: { y: 1000 }, debug: false }
+        arcade: { gravity: { y: 1200 }, debug: false }
     },
     scene: { preload: preload, create: create, update: update }
 };
 
-let player;
-let platforms;
-let cursors;
+let player, platforms, goal, cursors, levelText;
+let currentLevel = 1;
 const game = new Phaser.Game(config);
 
-function preload() {
-    // Using simple shapes for a clean "Prototyping" look
-}
+function preload() {}
 
 function create() {
-    // Create Background
-    this.add.rectangle(400, 200, 800, 400, 0x3498db);
-
-    // Create Platforms (The Parkour Course)
-    platforms = this.physics.add.staticGroup();
+    setupLevel(this);
     
-    // Floor
-    platforms.create(400, 380, null).运作 = false; // logic placeholder
-    this.add.rectangle(400, 380, 800, 40, 0x2ecc71); 
-    platforms.add(this.add.zone(400, 380, 800, 40));
+    cursors = this.input.keyboard.createCursorKeys();
+    levelText = document.getElementById('level-display');
+}
 
-    // Parkour Ledges
-    const levels = [
-        {x: 200, y: 300, w: 100},
-        {x: 400, y: 220, w: 120},
-        {x: 600, y: 150, w: 100},
-        {x: 750, y: 100, w: 50}
-    ];
+function setupLevel(scene) {
+    scene.physics.world.setBounds(0, 0, 2000, config.height);
+    
+    // Background Glow
+    scene.add.grid(1000, config.height/2, 2000, config.height, 40, 40, 0x002222, 0.5);
 
-    levels.forEach(lvl => {
-        this.add.rectangle(lvl.x, lvl.y, lvl.w, 20, 0xe67e22);
-        let p = platforms.create(lvl.x, lvl.y, null);
-        p.setSize(lvl.w, 20);
-    });
+    platforms = scene.physics.add.staticGroup();
 
-    // Create Player (The "Runner")
-    const playerGraphic = this.add.rectangle(100, 300, 30, 30, 0xf1c40f);
-    player = this.physics.add.existing(playerGraphic);
+    // Create Floor at start
+    createPlatform(scene, 100, config.height - 50, 300, 40);
+
+    // Procedural Level Generation based on Level Number
+    for (let i = 0; i < 6 + currentLevel; i++) {
+        let x = 400 + (i * 250);
+        let y = config.height - (100 + Math.random() * 250);
+        let w = 150 - (currentLevel * 5); // Platforms get smaller
+        createPlatform(scene, x, y, Math.max(w, 50), 20);
+    }
+
+    // Goal Portal
+    goal = scene.add.rectangle(1900, config.height - 150, 60, 100, 0xffffff);
+    scene.physics.add.existing(goal, true);
+    
+    // Player - Cyber Neon Square
+    player = scene.add.rectangle(100, config.height - 150, 30, 30, 0x00ffff);
+    scene.physics.add.existing(player);
     player.body.setCollideWorldBounds(true);
 
-    // Collisions
-    this.physics.add.collider(player, platforms);
+    // Visual Polish: Particles
+    const particles = scene.add.particles(0, 0, 'rect', {
+        speed: 100,
+        scale: { start: 1, end: 0 },
+        blendMode: 'ADD'
+    });
+    // Since we didn't load an image, we'll skip complex particles and stick to simple movement
 
-    // Controls
-    cursors = this.input.keyboard.createCursorKeys();
+    // Colliders
+    scene.physics.add.collider(player, platforms);
+    scene.physics.add.overlap(player, goal, () => {
+        currentLevel++;
+        levelText.innerText = `LEVEL: ${currentLevel}`;
+        scene.scene.restart();
+    }, null, scene);
 
-    // UI
-    this.add.text(10, 10, 'CHEESE STUDIOS PARKOUR', { font: '20px Arial', fill: '#fff' });
+    // Camera follow
+    scene.cameras.main.startFollow(player, true, 0.1, 0.1);
+    scene.cameras.main.setBounds(0, 0, 2000, config.height);
+}
+
+function createPlatform(scene, x, y, w, h) {
+    const p = scene.add.rectangle(x, y, w, h, 0xff00ff);
+    platforms.add(p);
+    scene.physics.add.existing(p, true);
+    // Add neon glow
+    p.setStrokeStyle(2, 0x00ffff);
 }
 
 function update() {
-    // Left/Right Movement
     if (cursors.left.isDown) {
-        player.body.setVelocityX(-200);
+        player.body.setVelocityX(-300);
+        player.fillColor = 0xff00ff;
     } else if (cursors.right.isDown) {
-        player.body.setVelocityX(200);
+        player.body.setVelocityX(300);
+        player.fillColor = 0x00ffff;
     } else {
         player.body.setVelocityX(0);
     }
 
-    // Jumping
     if (cursors.up.isDown && player.body.touching.down) {
-        player.body.setVelocityY(-500);
+        player.body.setVelocityY(-600);
+    }
+
+    // Reset if fall
+    if (player.y > config.height - 10) {
+        this.scene.restart();
     }
 }
 </script>
